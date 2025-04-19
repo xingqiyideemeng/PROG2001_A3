@@ -38,7 +38,7 @@ public class CollectibleManager : MonoBehaviour
 
     void UpdateCounter()
     {
-        counterText.text = $"surplus: {totalCollectibles - collectedCount}/{totalCollectibles}";
+        counterText.text = $"coins: {totalCollectibles - collectedCount}/{totalCollectibles}";
     }
 
     void ShowVictory()

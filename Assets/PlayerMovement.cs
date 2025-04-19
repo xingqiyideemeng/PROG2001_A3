@@ -4,24 +4,24 @@ public class PlayerMovement : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float moveSpeed = 5f;
-    [Tooltip("旋转平滑度")]
-    public float rotationSmoothness = 10f;
+    public float rotationSpeed = 10f; // 面向移动方向的旋转速度
+    public bool cameraRelativeMovement = true; // 基于相机的移动
 
     [Header("Jump Settings")]
-    [Tooltip("建议值：3-10")]
-    public float jumpHeight = 20f;  // 增大默认值
-    [Tooltip("重力倍数")]
-    public float gravityMultiplier = 20f;  // 新增参数控制重力强度
+    public float jumpHeight = 2f;
+    public float gravityMultiplier = 2f;
     private float _gravity = -9.81f;
 
     private CharacterController _controller;
     private Vector3 _velocity;
     private bool _isGrounded;
+    private Transform _cameraTransform;
 
     void Start()
     {
         _controller = GetComponent<CharacterController>();
-        _gravity *= gravityMultiplier;  // 应用重力倍数
+        _gravity *= gravityMultiplier;
+        _cameraTransform = Camera.main.transform;
     }
 
     void Update()
@@ -37,7 +37,7 @@ public class PlayerMovement : MonoBehaviour
         _isGrounded = _controller.isGrounded;
         if (_isGrounded && _velocity.y < 0)
         {
-            _velocity.y = -0.5f;  // 微小的负值保持贴地
+            _velocity.y = -0.5f;
         }
     }
 
@@ -51,22 +51,35 @@ public class PlayerMovement : MonoBehaviour
 
         if (input.magnitude > 0.1f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(input);
+            // 基于相机的移动方向
+            Vector3 moveDirection = cameraRelativeMovement
+                ? GetCameraRelativeDirection(input)
+                : input;
+
+            // 移动角色
+            _controller.Move(moveDirection * moveSpeed * Time.deltaTime);
+
+            // 平滑转向移动方向
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
                 targetRotation,
-                rotationSmoothness * Time.deltaTime
+                rotationSpeed * Time.deltaTime
             );
         }
+    }
 
-        _controller.Move(input * moveSpeed * Time.deltaTime);
+    Vector3 GetCameraRelativeDirection(Vector3 input)
+    {
+        // 获取相机前方方向（忽略Y轴）
+        Vector3 cameraForward = Vector3.Scale(_cameraTransform.forward, new Vector3(1, 0, 1)).normalized;
+        return input.z * cameraForward + input.x * _cameraTransform.right;
     }
 
     void HandleJump()
     {
         if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
         {
-            // 更直观的跳跃公式
             _velocity.y = Mathf.Sqrt(2 * Mathf.Abs(_gravity) * jumpHeight);
         }
     }
